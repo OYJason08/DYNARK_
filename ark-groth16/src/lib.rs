@@ -32,11 +32,11 @@ pub mod generator;
 pub mod prover;
 
 /// Generate public parameters for the Groth16 zkSNARK construction.
-pub mod dynarc_generator;
+pub mod dynark_generator;
 /// Create proofs for the Groth16 zkSNARK construction.
-pub mod dynarc_prover;
+pub mod dynark_prover;
 /// Verify proofs for the Groth16 zkSNARK construction.
-pub mod dynarc_verifier;
+pub mod dynark_verifier;
 
 /// Verify proofs for the Groth16 zkSNARK construction.
 pub mod verifier;

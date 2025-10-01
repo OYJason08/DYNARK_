@@ -53,51 +53,51 @@ fn measure_semi_dynamic_pro<E: Pairing>(file: &mut File, domain_log_n: usize) {
     let (instance, witness) = generate_instance_witness::<E>(num_instance, num_witness, &mut rng, &ka, &kb, &ca, &cb);
 
     let setup_start = Instant::now();
-    let (pk, vk, domain) = Groth16::<E>::groth16_setup_dynarc(matrices.clone(), &mut rng).unwrap();
+    let (pk, vk, domain) = Groth16::<E>::groth16_setup_dynark(matrices.clone(), &mut rng).unwrap();
     let uk = Groth16::<E>::generate_updating_keys(&matrices,&domain, &pk).unwrap();
     let setup_time = setup_start.elapsed();
-    println!("Dynarc Setup time: {:?}", setup_time);
-    writeln!(file, "Dynarc Setup time: {:?}", setup_time);
+    println!("Dynark Setup time: {:?}", setup_time);
+    writeln!(file, "Dynark Setup time: {:?}", setup_time);
 
     let prove_start = Instant::now();
     let (proof, mut cache) =
-        Groth16::<E>::prove_dynarc(&pk, &matrices, &instance, &witness, &mut rng).unwrap();
+        Groth16::<E>::prove_dynark(&pk, &matrices, &instance, &witness, &mut rng).unwrap();
     let prove_time = prove_start.elapsed();
-    println!("Dynarc Prove time: {:?}", prove_time);
-    writeln!(file, "Dynarc Prove time: {:?}", prove_time);
+    println!("Dynark Prove time: {:?}", prove_time);
+    writeln!(file, "Dynark Prove time: {:?}", prove_time);
 
     let preprocess_start = Instant::now();
-    Groth16::<E>::process_dynarc(&uk, &matrices, &instance, &witness, &mut cache).unwrap();
+    Groth16::<E>::process_dynark(&uk, &matrices, &instance, &witness, &mut cache).unwrap();
     let preprocess_time = preprocess_start.elapsed();
-    println!("Dynarc Preprocess time: {:?}", preprocess_time);
-    writeln!(file, "Dynarc Preprocess time: {:?}", preprocess_time);
+    println!("Dynark Preprocess time: {:?}", preprocess_time);
+    writeln!(file, "Dynark Preprocess time: {:?}", preprocess_time);
 
     let verify_old_proof_start = Instant::now();
     let pvk = prepare_verifying_key(&vk);
-    let result = Groth16::<E>::verify_dynarc(&pvk, &proof, &instance).unwrap();
+    let result = Groth16::<E>::verify_dynark(&pvk, &proof, &instance).unwrap();
     let verify_old_time = verify_old_proof_start.elapsed();
-    println!("Dynarc Old proof verify time: {:?}", verify_old_time);
-    println!("Dynarc Old proof verification result: {}", result);
-    writeln!(file, "Dynarc Old proof verify time: {:?}", verify_old_time);
-    writeln!(file, "Dynarc Old proof verification result: {}", result);
+    println!("Dynark Old proof verify time: {:?}", verify_old_time);
+    println!("Dynark Old proof verification result: {}", result);
+    writeln!(file, "Dynark Old proof verify time: {:?}", verify_old_time);
+    writeln!(file, "Dynark Old proof verification result: {}", result);
     // println!("Proof_old: {:?}", proof.c_g1.into_group());
 
     let (instance_update, witness_update) = generate_update_once::<E>(num_constraint, num_update, num_instance, &ka, &kb, &ca, &cb, &instance, &witness, &mut rng);
     let update_start = Instant::now();
-    let proof_updated = Groth16::<E>::update_dynarc(&uk, &matrices, &instance_update, &witness_update, &cache).unwrap();
+    let proof_updated = Groth16::<E>::update_dynark(&uk, &matrices, &instance_update, &witness_update, &cache).unwrap();
     let update_time = update_start.elapsed();
-    println!("Dynarc Update time: {:?}", update_time);
-    writeln!(file, "Dynarc Update time: {:?}", update_time);
+    println!("Dynark Update time: {:?}", update_time);
+    writeln!(file, "Dynark Update time: {:?}", update_time);
 
     let verify_new_start = Instant::now();
     let pvk = prepare_verifying_key(&vk);
-    let result = Groth16::<E>::verify_dynarc(&pvk, &proof_updated, &instance).unwrap();
+    let result = Groth16::<E>::verify_dynark(&pvk, &proof_updated, &instance).unwrap();
     let verify_new_time = verify_new_start.elapsed();
     // println!("Proof_new: {:?}", proof_updated.c_g1.into_group());
     // println!("Proof_new: {:?}", proof_updated.b_g2.into_group());
-    // println!("Dynarc New proof verify time: {:?}", verify_new_time);
-    println!("Dynarc New proof verification result: >>>> {} <<<<", result);
-    writeln!(file, "Dynarc New proof verification result: >>>> {} <<<<", result);
+    // println!("Dynark New proof verify time: {:?}", verify_new_time);
+    println!("Dynark New proof verification result: >>>> {} <<<<", result);
+    writeln!(file, "Dynark New proof verification result: >>>> {} <<<<", result);
     
 
     println!("Compressed proof size: {:?}",proof.serialized_size(Compress::Yes));
@@ -107,19 +107,19 @@ fn measure_semi_dynamic_pro<E: Pairing>(file: &mut File, domain_log_n: usize) {
     println!("No para now, Cores = {:?}",current_num_threads());
     writeln!(file, "No para now, Cores = {:?}",current_num_threads());
     let update_start = Instant::now();
-    let proof_updated = Groth16::<E>::update_dynarc(&uk, &matrices, &instance_update, &witness_update, &cache).unwrap();
+    let proof_updated = Groth16::<E>::update_dynark(&uk, &matrices, &instance_update, &witness_update, &cache).unwrap();
     let update_time = update_start.elapsed();
-    println!("Dynarc Update time: {:?}", update_time);
-    writeln!(file, "Dynarc Update time: {:?}", update_time);
+    println!("Dynark Update time: {:?}", update_time);
+    writeln!(file, "Dynark Update time: {:?}", update_time);
 
     let verify_new_start = Instant::now();
     let pvk = prepare_verifying_key(&vk);
-    let result = Groth16::<E>::verify_dynarc(&pvk, &proof_updated, &instance).unwrap();
+    let result = Groth16::<E>::verify_dynark(&pvk, &proof_updated, &instance).unwrap();
     let verify_new_time = verify_new_start.elapsed();
-    println!("Dynarc New proof verify time: {:?}", verify_new_time);
-    println!("Dynarc New proof verification result: >>>> {} <<<<", result);
-    writeln!(file, "Dynarc New proof verify time: {:?}", verify_new_time);
-    writeln!(file, "Dynarc New proof verification result: >>>> {} <<<<", result);
+    println!("Dynark New proof verify time: {:?}", verify_new_time);
+    println!("Dynark New proof verification result: >>>> {} <<<<", result);
+    writeln!(file, "Dynark New proof verify time: {:?}", verify_new_time);
+    writeln!(file, "Dynark New proof verification result: >>>> {} <<<<", result);
     // });
 
 
@@ -152,67 +152,67 @@ fn measure_semi_dynamic_trivial<E: Pairing>() {
     let (instance, witness) = generate_instance_witness_trivial::<E>(num_instance, num_witness, &mut rng);
 
     let setup_start = Instant::now();
-    let (pk, vk, domain) = Groth16::<E>::groth16_setup_dynarc(matrices.clone(), &mut rng).unwrap();
+    let (pk, vk, domain) = Groth16::<E>::groth16_setup_dynark(matrices.clone(), &mut rng).unwrap();
     let uk = Groth16::<E>::generate_updating_keys(&matrices,&domain, &pk).unwrap();
     let setup_time = setup_start.elapsed();
-    println!("Dynarc Setup time: {:?}", setup_time);
+    println!("Dynark Setup time: {:?}", setup_time);
 
     let prove_start = Instant::now();
     let (proof, mut cache) =
-        Groth16::<E>::prove_dynarc(&pk, &matrices, &instance, &witness, &mut rng).unwrap();
+        Groth16::<E>::prove_dynark(&pk, &matrices, &instance, &witness, &mut rng).unwrap();
     let prove_time = prove_start.elapsed();
-    println!("Dynarc Prove time: {:?}", prove_time);
+    println!("Dynark Prove time: {:?}", prove_time);
 
     let preprocess_start = Instant::now();
-    Groth16::<E>::process_dynarc(&uk, &matrices, &instance, &witness, &mut cache).unwrap();
+    Groth16::<E>::process_dynark(&uk, &matrices, &instance, &witness, &mut cache).unwrap();
     let pvk = prepare_verifying_key(&vk);
     let preprocess_time = preprocess_start.elapsed();
-    println!("Dynarc Preprocess time: {:?}", preprocess_time);
+    println!("Dynark Preprocess time: {:?}", preprocess_time);
 
     let verify_old_proof_start = Instant::now();
-    let result = Groth16::<E>::verify_dynarc(&pvk, &proof, &instance).unwrap();
+    let result = Groth16::<E>::verify_dynark(&pvk, &proof, &instance).unwrap();
     let verify_old_time = verify_old_proof_start.elapsed();
-    println!("Dynarc Old proof verify time: {:?}", verify_old_time);
-    println!("Dynarc Old proof verification result: {}", result);
+    println!("Dynark Old proof verify time: {:?}", verify_old_time);
+    println!("Dynark Old proof verification result: {}", result);
     // println!("Proof_old: {:?}", proof.c_g1.into_group());
 
     let witness_update = generate_update_trivial::<E>(num_update, &mut rng);
     let update_start = Instant::now();
-    let proof_updated = Groth16::<E>::update_dynarc(&uk, &matrices, &[], &witness_update, &cache).unwrap();
+    let proof_updated = Groth16::<E>::update_dynark(&uk, &matrices, &[], &witness_update, &cache).unwrap();
     let update_time = update_start.elapsed();
-    println!("Dynarc Update time: {:?}", update_time);
+    println!("Dynark Update time: {:?}", update_time);
 
     let verify_new_start = Instant::now();
-    let result = Groth16::<E>::verify_dynarc(&pvk, &proof_updated, &instance).unwrap();
+    let result = Groth16::<E>::verify_dynark(&pvk, &proof_updated, &instance).unwrap();
     let verify_new_time = verify_new_start.elapsed();
     // println!("Proof_new: {:?}", proof_updated.c_g1.into_group());
     // println!("Proof_new: {:?}", proof_updated.b_g2.into_group());
-    // println!("Dynarc New proof verify time: {:?}", verify_new_time);
-    println!("Dynarc New proof verification result: >>>> {} <<<<    [Trivial]", result);
+    // println!("Dynark New proof verify time: {:?}", verify_new_time);
+    println!("Dynark New proof verification result: >>>> {} <<<<    [Trivial]", result);
     
     let mut new_witness = witness.clone();
     (witness_update).iter().for_each(|(i,vl)|{new_witness[*i - num_instance]+=vl;});
     // println!("new witness:{:?}", new_witness);
     let (proof, cache) =
-        Groth16::<E>::prove_dynarc(&pk, &matrices, &instance, &new_witness, &mut rng).unwrap();
-    let result: bool = Groth16::<E>::verify_dynarc(&pvk, &proof, &instance).unwrap();
+        Groth16::<E>::prove_dynark(&pk, &matrices, &instance, &new_witness, &mut rng).unwrap();
+    let result: bool = Groth16::<E>::verify_dynark(&pvk, &proof, &instance).unwrap();
     let verify_old_time = verify_old_proof_start.elapsed();
-    // println!("Dynarc GRT proof verify time: {:?}", verify_old_time);
-    println!("Dynarc GRT proof verification result: {}", result);
+    // println!("Dynark GRT proof verify time: {:?}", verify_old_time);
+    println!("Dynark GRT proof verification result: {}", result);
 
     // let mut sub_proof = proof.clone();
     // sub_proof.a_g1 = proof_updated.a_g1;
-    // let result: bool = Groth16::<E>::verify_dynarc(&pvk, &sub_proof, &instance).unwrap();
+    // let result: bool = Groth16::<E>::verify_dynark(&pvk, &sub_proof, &instance).unwrap();
     // println!("Std proof using a_g1 from update verification result: {}", result);
 
     // let mut sub_proof = proof.clone();
     // sub_proof.b_g2 = proof_updated.b_g2;
-    // let result: bool = Groth16::<E>::verify_dynarc(&pvk, &sub_proof, &instance).unwrap();
+    // let result: bool = Groth16::<E>::verify_dynark(&pvk, &sub_proof, &instance).unwrap();
     // println!("Std proof using b_g2 from update verification result: {}", result);
 
     // let mut sub_proof = proof.clone();
     // sub_proof.c_g1 = proof_updated.c_g1;
-    // let result: bool = Groth16::<E>::verify_dynarc(&pvk, &sub_proof, &instance).unwrap();
+    // let result: bool = Groth16::<E>::verify_dynark(&pvk, &sub_proof, &instance).unwrap();
     // println!("Std proof using c_g1 from update verification result: {}", result);
     // println!("Diff: {:?}", (proof.a_g1.into_group() - proof_updated.a_g1.into_group()).into_affine().into_group());
 }

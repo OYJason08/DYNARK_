@@ -16,7 +16,7 @@ use rayon::prelude::*;
 
 impl<E: Pairing, QAP: R1CSToQAP> Groth16<E, QAP> {
     ///
-    pub fn groth16_setup_dynarc<R: Rng>(
+    pub fn groth16_setup_dynark<R: Rng>(
         r1cs: ConstraintMatrices<E::ScalarField>,
         rng: &mut R,
     ) -> Result<(ProvingKey<E>, VerifyingKey<E>, GeneralEvaluationDomain::<E::ScalarField>), SynthesisError> {

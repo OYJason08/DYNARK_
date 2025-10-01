@@ -49,38 +49,38 @@ fn bench_fully_dynamic<E: Pairing>(file: &mut File, domain_log_n: usize) {
     );
 
     let setup_start = Instant::now();
-    let (pk, vk, domain) = Groth16::<E>::groth16_setup_dynarc(matrices.clone(), &mut rng).unwrap();
+    let (pk, vk, domain) = Groth16::<E>::groth16_setup_dynark(matrices.clone(), &mut rng).unwrap();
     let setup_time = setup_start.elapsed();
-    println!("Dynarc Setup time: {:?}", setup_time);
-    writeln!(file, "Dynarc Setup time: {:?}", setup_time);
+    println!("Dynark Setup time: {:?}", setup_time);
+    writeln!(file, "Dynark Setup time: {:?}", setup_time);
     
     let prove_start = Instant::now();
     let (proof, cache) =
-    Groth16::<E>::prove_dynarc(&pk, &matrices, &instance, &witness, &mut rng).unwrap();
+    Groth16::<E>::prove_dynark(&pk, &matrices, &instance, &witness, &mut rng).unwrap();
     let prove_time = prove_start.elapsed();
-    println!("Dynarc Prove time: {:?}", prove_time);
-    writeln!(file, "Dynarc Prove time: {:?}", prove_time);
+    println!("Dynark Prove time: {:?}", prove_time);
+    writeln!(file, "Dynark Prove time: {:?}", prove_time);
     
     
     
     let verify_old_proof_start = Instant::now();
     let pvk = prepare_verifying_key(&vk);
-    let result = Groth16::<E>::verify_dynarc(&pvk, &proof, &instance).unwrap();
+    let result = Groth16::<E>::verify_dynark(&pvk, &proof, &instance).unwrap();
     let verify_old_time = verify_old_proof_start.elapsed();
-    println!("Dynarc Old proof verify time: {:?}", verify_old_time);
-    writeln!(file, "Dynarc Old proof verify time: {:?}", verify_old_time);
-    println!("Dynarc Old proof verification result: {}", result);
-    writeln!(file, "Dynarc Old proof verification result: {}", result);
+    println!("Dynark Old proof verify time: {:?}", verify_old_time);
+    writeln!(file, "Dynark Old proof verify time: {:?}", verify_old_time);
+    println!("Dynark Old proof verification result: {}", result);
+    writeln!(file, "Dynark Old proof verification result: {}", result);
     
     let preprocess_start = Instant::now();
-    // Groth16::<E>::process_dynarc(&uk, &matrices, &instance, &witness, &mut cache);
+    // Groth16::<E>::process_dynark(&uk, &matrices, &instance, &witness, &mut cache);
     let uk = Groth16::<E>::generate_updating_keys(&matrices,&domain, &pk).unwrap();
     let mut checkpoint_using: FullyCheckpoint<E> = FullyCheckpoint::<E>::new(num_constraint, &uk, &matrices, &instance, &witness);
     let mut checkpoint_preparing =  checkpoint_using.clone();
     checkpoint_preparing.prepare_for_reconstruct();
     let preprocess_time = preprocess_start.elapsed();
-    println!("Dynarc Preprocess time: {:?}", preprocess_time);
-    writeln!(file, "Dynarc Preprocess time: {:?}", preprocess_time);
+    println!("Dynark Preprocess time: {:?}", preprocess_time);
+    writeln!(file, "Dynark Preprocess time: {:?}", preprocess_time);
     let mut dist_from_last_renew:usize = 0;
     // let mut cur_1: usize = 0;
     // let mut cur_2: usize = 0;
@@ -159,7 +159,7 @@ fn bench_fully_dynamic<E: Pairing>(file: &mut File, domain_log_n: usize) {
                 sum_update_other_parts_time += update_other_parts_time;
                 let update_time: std::time::Duration = update_start.elapsed();
                 sum_update_time += update_time;
-                let result = Groth16::<E>::verify_dynarc(&pvk, &proof_updated, &instance).unwrap();
+                let result = Groth16::<E>::verify_dynark(&pvk, &proof_updated, &instance).unwrap();
                 if !result {
                     panic!(" Verify Failed");
                 }

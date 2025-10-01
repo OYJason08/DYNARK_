@@ -20,7 +20,7 @@ type D<F> = GeneralEvaluationDomain<F>;
 impl<E: Pairing, QAP: R1CSToQAP> Groth16<E, QAP> {
     /// Verify a Groth16 proof `proof` against the prepared verification key
     /// `pvk`, with respect to the instance `public_inputs`.
-    pub fn verify_dynarc(
+    pub fn verify_dynark(
         pvk: &PreparedVerifyingKey<E>,
         proof: &Proof<E>,
         instance: &[E::ScalarField],

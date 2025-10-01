@@ -140,7 +140,7 @@ impl<E: Pairing, QAP: R1CSToQAP> Groth16<E, QAP> {
 
     /// Generates a proof of satisfaction of the arithmetic circuit C (specified
     /// as R1CS constraints).
-    pub fn prove_dynarc<R: Rng>(
+    pub fn prove_dynark<R: Rng>(
         pk: &ProvingKey<E>,
         r1cs: &ConstraintMatrices<E::ScalarField>,
         instance: &[E::ScalarField],
@@ -231,7 +231,7 @@ impl<E: Pairing, QAP: R1CSToQAP> Groth16<E, QAP> {
     }
 
     /// Preprocess
-    pub fn process_dynarc(
+    pub fn process_dynark(
         uk: &UpdatingKey<E>,
         r1cs: &ConstraintMatrices<E::ScalarField>,
         instance: &[E::ScalarField],
@@ -251,7 +251,7 @@ impl<E: Pairing, QAP: R1CSToQAP> Groth16<E, QAP> {
     /// compute c_acc' = c_acc + s' * a_acc' - s * a_acc + r' * b_acc' - r *
     /// b_acc  - (r's' - rs) * delta_g1 + \sum witness_update[i] * t_p_g1[i]
     /// Updates the proof with new instance and witness values.
-    pub fn update_dynarc(
+    pub fn update_dynark(
         uk: &UpdatingKey<E>,
         matrices: &ConstraintMatrices<E::ScalarField>,
         instance_update: &[(usize, E::ScalarField)],

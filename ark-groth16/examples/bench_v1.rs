@@ -16,11 +16,13 @@ use ark_groth16::dynamic_cache::{FullyCheckpoint};
 use ark_groth16::instance_generator::{generate_update};
 use std::time::Duration;
 use rayon::{current_num_threads,ThreadPoolBuilder};
+
 // cargo run --example bench_v1 --features parallel --release
+
 fn main() {
     println!("Global Cores = {:?}",current_num_threads());
     // Test_Setup::<Bls12_381>(20,10);
-    Test_Preprocess::<Bls12_381>(3);
+    // Test_Preprocess::<Bls12_381>(3);
     // Test_ProveTime_d1_moveN::<Bls12_381>(1<<12);
     // Test_ProveTime_FixN_move_d::<Bls12_381>(20,10);
 }
@@ -47,7 +49,7 @@ fn Test_Setup<E: Pairing>(log_n: usize, repeat_time:usize){
     writeln!(file, "Start For N = {:?}\n", num_assignment);
     let groth16_processing_time = (0..repeat_time).into_iter().map(|_|{
         let prove_start = Instant::now();
-        let (pk, vk, domain) = Groth16::<E>::groth16_setup_dynarc(matrices.clone(), &mut rng).unwrap();
+        let (pk, vk, domain) = Groth16::<E>::groth16_setup_dynark(matrices.clone(), &mut rng).unwrap();
         prove_start.elapsed()
     }).sum::<Duration>() / repeat_time.try_into().unwrap();//.collect::<Vec<Duration> >();
     println!("Standard Groth16 Setup Avg Time: {:?}\n----------------------------------------------------------------", groth16_processing_time);
@@ -56,7 +58,7 @@ fn Test_Setup<E: Pairing>(log_n: usize, repeat_time:usize){
 
     let dynark_preprocessing_time = (0..repeat_time).into_iter().map(|_|{
         let prove_start = Instant::now();
-        let (pk, vk, domain) = Groth16::<E>::groth16_setup_dynarc(matrices.clone(), &mut rng).unwrap();
+        let (pk, vk, domain) = Groth16::<E>::groth16_setup_dynark(matrices.clone(), &mut rng).unwrap();
         let _ = Groth16::<E>::generate_updating_keys(&matrices, &domain, &pk);
         prove_start.elapsed()
     }).sum::<Duration>() / repeat_time.try_into().unwrap();//.collect::<Vec<Duration> >();
@@ -83,17 +85,17 @@ fn Test_Preprocess<E: Pairing>(repeat_time:usize) {
         let (matrices, ka, kb, ca, cb) =
             generate_matrices::<E>(num_constraint, num_instance, num_witness, &mut rng);
         let (instance, witness) = generate_instance_witness::<E>(num_instance, num_witness, &mut rng, &ka, &kb, &ca, &cb);
-        let (pk, vk, domain) = Groth16::<E>::groth16_setup_dynarc(matrices.clone(), &mut rng).unwrap();
+        let (pk, vk, domain) = Groth16::<E>::groth16_setup_dynark(matrices.clone(), &mut rng).unwrap();
         let uk = Groth16::<E>::generate_updating_keys(&matrices, &domain, &pk).unwrap();
         let (_, mut cache) =
-            Groth16::<E>::prove_dynarc(&pk, &matrices, &instance, &witness, &mut rng).unwrap();
+            Groth16::<E>::prove_dynark(&pk, &matrices, &instance, &witness, &mut rng).unwrap();
         
         println!("Start For N = {:?}\n", num_assignment);
         writeln!(file, "Start For N = {:?}\n", num_assignment);
 
         let dynark_preprocessing_time = (0..repeat_time).into_iter().map(|_|{
             let pre_processing_start = Instant::now();
-            Groth16::<E>::process_dynarc(&uk, &matrices, &instance, &witness, &mut cache).unwrap();
+            Groth16::<E>::process_dynark(&uk, &matrices, &instance, &witness, &mut cache).unwrap();
             let preprocessing_time = pre_processing_start.elapsed();
             preprocessing_time
         }).sum::<Duration>() / repeat_time.try_into().unwrap();//.collect::<Vec<Duration> >();
@@ -106,7 +108,7 @@ fn Test_Preprocess<E: Pairing>(repeat_time:usize) {
                 let pool: rayon::ThreadPool = ThreadPoolBuilder::new().num_threads(1).build().unwrap();
                 pool.install(||{
                     let pre_processing_start = Instant::now();
-                    Groth16::<E>::process_dynarc(&uk, &matrices, &instance, &witness, &mut cache).unwrap();
+                    Groth16::<E>::process_dynark(&uk, &matrices, &instance, &witness, &mut cache).unwrap();
                     preprocessing_time = pre_processing_start.elapsed();
                 });
                 preprocessing_time
@@ -144,16 +146,16 @@ fn Test_ProveTime_d1_moveN<E: Pairing>(repeat_time:usize) {
         let (matrices, ka, kb, ca, cb) =
             generate_matrices::<E>(num_constraint, num_instance, num_witness, &mut rng);
         let (mut instance, mut witness) = generate_instance_witness::<E>(num_instance, num_witness, &mut rng, &ka, &kb, &ca, &cb);
-        let (pk, vk, domain) = Groth16::<E>::groth16_setup_dynarc(matrices.clone(), &mut rng).unwrap();
+        let (pk, vk, domain) = Groth16::<E>::groth16_setup_dynark(matrices.clone(), &mut rng).unwrap();
         println!("                              Got Prover key and Verifier Key");
         let pvk = prepare_verifying_key(&vk);
         let uk = Groth16::<E>::generate_updating_keys(&matrices, &domain, &pk).unwrap();
         println!("                              Got Update Key");
         let (_, mut cache) =
-            Groth16::<E>::prove_dynarc(&pk, &matrices, &instance, &witness, &mut rng).unwrap();
+            Groth16::<E>::prove_dynark(&pk, &matrices, &instance, &witness, &mut rng).unwrap();
 
         println!("                              Got Cached Quotient");
-        Groth16::<E>::process_dynarc(&uk, &matrices, &instance, &witness, &mut cache).unwrap();
+        Groth16::<E>::process_dynark(&uk, &matrices, &instance, &witness, &mut cache).unwrap();
 
         let instance_copy = instance.clone();
         let witness_copy = witness.clone();
@@ -204,7 +206,7 @@ fn Test_ProveTime_d1_moveN<E: Pairing>(repeat_time:usize) {
                 // println!("{:?}, {:?}, {:?}", checkpoint_using.raw_a_g1, checkpoint_using.raw_b_g1, checkpoint_using.raw_c_g1);
                 let proof_updated = checkpoint_using.get_proof_with_rs(&uk);
                 let update_other_parts_time = update_other_parts_start.elapsed();
-                let result = Groth16::<E>::verify_dynarc(&pvk, &proof_updated, &instance).unwrap();
+                let result = Groth16::<E>::verify_dynark(&pvk, &proof_updated, &instance).unwrap();
                 let prove_time = update_reconstruct_time + update_other_parts_time;
                 // println!("        Fully Dynamic Prover time: {:?},    Result = {:?}", prove_time, result);
                 if !result{
@@ -221,10 +223,10 @@ fn Test_ProveTime_d1_moveN<E: Pairing>(repeat_time:usize) {
             let (instance_update, witness_update) =
                 generate_update_once::<E>(num_constraint, num_update, num_instance, &ka, &kb, &ca, &cb, &instance_copy, &witness_copy, &mut rng);
             let semi_prover_start = Instant::now();
-            let proof_updated = Groth16::<E>::update_dynarc(&uk, &matrices, &instance_update, &witness_update, &cache).unwrap();
+            let proof_updated = Groth16::<E>::update_dynark(&uk, &matrices, &instance_update, &witness_update, &cache).unwrap();
             let semi_prover_update_time = semi_prover_start.elapsed();
-            let result = Groth16::<E>::verify_dynarc(&pvk, &proof_updated, &instance_copy).unwrap();
-            // println!("Dynarc New proof verification result: >>>> {} <<<<", result);
+            let result = Groth16::<E>::verify_dynark(&pvk, &proof_updated, &instance_copy).unwrap();
+            // println!("Dynark New proof verification result: >>>> {} <<<<", result);
             if !result{
                 panic!("Semi Prover Fail");
             }
@@ -256,16 +258,16 @@ fn Test_ProveTime_FixN_move_d<E: Pairing>(log_n: usize, repeat_time:usize) {
     let (matrices, ka, kb, ca, cb) =
         generate_matrices::<E>(num_constraint, num_instance, num_witness, &mut rng);
     let (mut instance, mut witness) = generate_instance_witness::<E>(num_instance, num_witness, &mut rng, &ka, &kb, &ca, &cb);
-    let (pk, vk, domain) = Groth16::<E>::groth16_setup_dynarc(matrices.clone(), &mut rng).unwrap();
+    let (pk, vk, domain) = Groth16::<E>::groth16_setup_dynark(matrices.clone(), &mut rng).unwrap();
     println!("                              Got Prover key and Verifier Key");
     let pvk = prepare_verifying_key(&vk);
     let uk = Groth16::<E>::generate_updating_keys(&matrices,&domain, &pk).unwrap();
     println!("                              Got Update Key");
     let (_, mut cache) =
-        Groth16::<E>::prove_dynarc(&pk, &matrices, &instance, &witness, &mut rng).unwrap();
+        Groth16::<E>::prove_dynark(&pk, &matrices, &instance, &witness, &mut rng).unwrap();
 
     println!("                              Got Cached Quotient");
-    Groth16::<E>::process_dynarc(&uk, &matrices, &instance, &witness, &mut cache).unwrap();
+    Groth16::<E>::process_dynark(&uk, &matrices, &instance, &witness, &mut cache).unwrap();
 
     let instance_copy = instance.clone();
     let witness_copy = witness.clone();
@@ -319,7 +321,7 @@ fn Test_ProveTime_FixN_move_d<E: Pairing>(log_n: usize, repeat_time:usize) {
                 // println!("{:?}, {:?}, {:?}", checkpoint_using.raw_a_g1, checkpoint_using.raw_b_g1, checkpoint_using.raw_c_g1);
                 let proof_updated = checkpoint_using.get_proof_with_rs(&uk);
                 let update_other_parts_time = update_other_parts_start.elapsed();
-                let result = Groth16::<E>::verify_dynarc(&pvk, &proof_updated, &instance).unwrap();
+                let result = Groth16::<E>::verify_dynark(&pvk, &proof_updated, &instance).unwrap();
                 let prove_time = update_reconstruct_time + update_other_parts_time;
                 // println!("        Fully Dynamic Prover time: {:?},    Result = {:?}", prove_time, result);
                 if !result{
@@ -335,10 +337,10 @@ fn Test_ProveTime_FixN_move_d<E: Pairing>(log_n: usize, repeat_time:usize) {
             let (instance_update, witness_update) =
                 generate_update_once::<E>(num_constraint, num_update, num_instance, &ka, &kb, &ca, &cb, &instance_copy, &witness_copy, &mut rng);
             let semi_prover_start = Instant::now();
-            let proof_updated = Groth16::<E>::update_dynarc(&uk, &matrices, &instance_update, &witness_update, &cache).unwrap();
+            let proof_updated = Groth16::<E>::update_dynark(&uk, &matrices, &instance_update, &witness_update, &cache).unwrap();
             let semi_prover_update_time = semi_prover_start.elapsed();
-            let result = Groth16::<E>::verify_dynarc(&pvk, &proof_updated, &instance_copy).unwrap();
-            // println!("Dynarc New proof verification result: >>>> {} <<<<", result);
+            let result = Groth16::<E>::verify_dynark(&pvk, &proof_updated, &instance_copy).unwrap();
+            // println!("Dynark New proof verification result: >>>> {} <<<<", result);
             if !result{
                 panic!("Semi Prover Fail");
             }

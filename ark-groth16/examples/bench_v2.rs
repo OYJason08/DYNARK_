@@ -4,7 +4,7 @@ use ark_groth16::{prepare_verifying_key, Groth16, Proof, UpdatingKey};
 use ark_ff::UniformRand;
 use ark_ec::{AffineRepr, CurveGroup};
 use ark_std::{
-    rand::{RngCore, SeedableRng},
+    rand::{Rng, RngCore, SeedableRng},
     test_rng,
 };
 use std::{
@@ -16,16 +16,16 @@ use ark_groth16::instance_generator::{generate_update_once, generate_matrices, g
 use ark_groth16::dynamic_cache::{FullyCheckpoint};
 use ark_groth16::instance_generator::{generate_update};
 use std::time::Duration;
-use rayon::ThreadPoolBuilder;
-//  RAYON_NUM_THREADS=1 cargo run --example bench_v2 --no-default-features --features "std parallel" --release
+use rayon::{current_num_threads,ThreadPoolBuilder};
 //  cargo run --example bench_v2 --release
 
 fn main() {
+    println!("Global Cores = {:?}",current_num_threads());
     // Test_Preprocess_STD::<Bls12_381>(5);
     // Test_ProveTime_Semi::<Bls12_381>(22,50, true);
     // Test_ProveTime_Semi::<Bls12_381>(20,10, false);
     // Test_ProveTime_Fully::<Bls12_381>(22, 20, 32);
-    Test_EveryThing_On_N::<Bls12_381>(12, false, 3, 31);
+    // Test_EveryThing_On_N::<Bls12_381>(12, false, 3, 31);
 }
 
 fn Test_EveryThing_On_N<E: Pairing>(log_n: usize, para: bool, repeat_time: usize, non_para_every_k: usize) {
@@ -46,15 +46,15 @@ fn Test_EveryThing_On_N<E: Pairing>(log_n: usize, para: bool, repeat_time: usize
     let (matrices, ka, kb, ca, cb) =
         generate_matrices::<E>(num_constraint, num_instance, num_witness, &mut rng);
     let (mut instance, mut witness) = generate_instance_witness::<E>(num_instance, num_witness, &mut rng, &ka, &kb, &ca, &cb);
-    let (pk, vk, domain) = Groth16::<E>::groth16_setup_dynarc(matrices.clone(), &mut rng).unwrap();
+    let (pk, vk, domain) = Groth16::<E>::groth16_setup_dynark(matrices.clone(), &mut rng).unwrap();
     
     let (_, mut cache) =
-        Groth16::<E>::prove_dynarc(&pk, &matrices, &instance, &witness, &mut rng).unwrap();
+        Groth16::<E>::prove_dynark(&pk, &matrices, &instance, &witness, &mut rng).unwrap();
 
     let pvk = prepare_verifying_key(&vk);
     let uk = Groth16::<E>::generate_updating_keys(&matrices, &domain, &pk).unwrap();
     println!("                              Got Update Key");
-    Groth16::<E>::process_dynarc(&uk, &matrices, &instance, &witness, &mut cache).unwrap();
+    Groth16::<E>::process_dynark(&uk, &matrices, &instance, &witness, &mut cache).unwrap();
     println!("                              Got Cached Quotient");
     let mut checkpoint_using: FullyCheckpoint<E> = FullyCheckpoint::<E>::new_with_qached_quotient(
         num_constraint, &uk, &matrices, &instance, &witness, &cache.q_a, &cache.q_b);
@@ -68,12 +68,12 @@ fn Test_EveryThing_On_N<E: Pairing>(log_n: usize, para: bool, repeat_time: usize
         pool.install(||{
             let prove_start = Instant::now();
             (proof, _) =
-                Groth16::<E>::prove_dynarc(&pk, &matrices, &instance, &witness, &mut rng).unwrap();
+                Groth16::<E>::prove_dynark(&pk, &matrices, &instance, &witness, &mut rng).unwrap();
             prove_time = prove_start.elapsed();
             // writeln!(file, "Standard Groth16 Prove Size: {:?}\n", proof_size);
             
         });
-        let result = Groth16::<E>::verify_dynarc(&pvk, &proof, &instance).unwrap();
+        let result = Groth16::<E>::verify_dynark(&pvk, &proof, &instance).unwrap();
         if !result{
             panic!("Prove Fail");
         }
@@ -91,10 +91,10 @@ fn Test_EveryThing_On_N<E: Pairing>(log_n: usize, para: bool, repeat_time: usize
         let mut semi_prover_update_time = Duration::default();
         pool.install(||{
             let prove_start = Instant::now();
-            proof_updated = Groth16::<E>::update_dynarc(&uk, &matrices, &instance_update, &witness_update, &cache).unwrap();
+            proof_updated = Groth16::<E>::update_dynark(&uk, &matrices, &instance_update, &witness_update, &cache).unwrap();
             semi_prover_update_time = prove_start.elapsed();
         });
-        let result = Groth16::<E>::verify_dynarc(&pvk, &proof_updated, &instance).unwrap();
+        let result = Groth16::<E>::verify_dynark(&pvk, &proof_updated, &instance).unwrap();
         if !result{
             panic!("Semi Prover Fail");
         }
@@ -107,14 +107,14 @@ fn Test_EveryThing_On_N<E: Pairing>(log_n: usize, para: bool, repeat_time: usize
     let mut fully_prover_para_time: Duration = Duration::ZERO;
     let mut fully_prover_no_para_cnt:usize = 0;
     let mut fully_prover_para_cnt:usize = 0;
-    let repeat_time = ((1<<((log_n+6)>>1))/num_update)/((non_para_every_k<<1)+1)+1;
+    let repeat_time = ((1<<((log_n+6)>>1))/num_update)/non_para_every_k;
     (0..repeat_time).into_iter().for_each(|_|{
-        (0..((non_para_every_k<<1)+1)).into_iter().for_each(|it|{
-
+        let no_para_id = rng.gen_range(0..non_para_every_k);
+        (0..non_para_every_k).into_iter().for_each(|it|{
             let (instance_update, witness_update) =
                 generate_update::<E>(num_constraint, num_update, num_instance, &ka, &kb, &ca, &cb, &mut instance, &mut witness, &mut rng);
             let mut rem_stp = num_update;            
-            let cond = it != non_para_every_k;
+            let cond = it != no_para_id;
             let pool: rayon::ThreadPool = ThreadPoolBuilder::new().num_threads(if cond {192} else {1}).build().unwrap();
             let mut proof_updated =  Proof::<E>::default();
             let mut fully_prover_update_time: Duration = Duration::ZERO;
@@ -141,7 +141,7 @@ fn Test_EveryThing_On_N<E: Pairing>(log_n: usize, para: bool, repeat_time: usize
                 
                 fully_prover_update_time = fully_prover_start.elapsed();
             });
-            let result = Groth16::<E>::verify_dynarc(&pvk, &proof_updated, &instance).unwrap();
+            let result = Groth16::<E>::verify_dynark(&pvk, &proof_updated, &instance).unwrap();
             if !result {
                 panic!(" Fully prover Verifying Failed");
             }
@@ -183,7 +183,7 @@ fn Test_Preprocess_STD<E: Pairing>(repeat_time:usize) {
         let (matrices, ka, kb, ca, cb) =
             generate_matrices::<E>(num_constraint, num_instance, num_witness, &mut rng);
         let (instance, witness) = generate_instance_witness::<E>(num_instance, num_witness, &mut rng, &ka, &kb, &ca, &cb);
-        let (pk, vk, domain) = Groth16::<E>::groth16_setup_dynarc(matrices.clone(), &mut rng).unwrap();
+        let (pk, vk, domain) = Groth16::<E>::groth16_setup_dynark(matrices.clone(), &mut rng).unwrap();
         
         let pvk = prepare_verifying_key(&vk);
 
@@ -192,9 +192,9 @@ fn Test_Preprocess_STD<E: Pairing>(repeat_time:usize) {
         let groth16_processing_time = (0..repeat_time).into_iter().map(|_|{
             let prove_start = Instant::now();
             let (proof, cache) =
-                Groth16::<E>::prove_dynarc(&pk, &matrices, &instance, &witness, &mut rng).unwrap();
+                Groth16::<E>::prove_dynark(&pk, &matrices, &instance, &witness, &mut rng).unwrap();
             let prove_time = prove_start.elapsed();
-            let result = Groth16::<E>::verify_dynarc(&pvk, &proof, &instance).unwrap();
+            let result = Groth16::<E>::verify_dynark(&pvk, &proof, &instance).unwrap();
             println!("        Groth16 Prove time: {:?},    Result = {:?}", prove_time, result);
             if !result{
                 panic!("Prove Fail");
@@ -230,15 +230,15 @@ fn Test_ProveTime_Semi<E: Pairing>(max_log_n:usize,repeat_time:usize, para: bool
         let (matrices, ka, kb, ca, cb) =
             generate_matrices::<E>(num_constraint, num_instance, num_witness, &mut rng);
         let (instance, witness) = generate_instance_witness::<E>(num_instance, num_witness, &mut rng, &ka, &kb, &ca, &cb);
-        let (pk, vk, domain) = Groth16::<E>::groth16_setup_dynarc(matrices.clone(), &mut rng).unwrap();
+        let (pk, vk, domain) = Groth16::<E>::groth16_setup_dynark(matrices.clone(), &mut rng).unwrap();
         println!("                              Got Prover key and Verifier Key");
         let pvk = prepare_verifying_key(&vk);
         let uk = Groth16::<E>::generate_updating_keys(&matrices, &domain, &pk).unwrap();
         println!("                              Got Update Key");
         let (_, mut cache) =
-            Groth16::<E>::prove_dynarc(&pk, &matrices, &instance, &witness, &mut rng).unwrap();
+            Groth16::<E>::prove_dynark(&pk, &matrices, &instance, &witness, &mut rng).unwrap();
 
-        Groth16::<E>::process_dynarc(&uk, &matrices, &instance, &witness, &mut cache).unwrap();
+        Groth16::<E>::process_dynark(&uk, &matrices, &instance, &witness, &mut cache).unwrap();
         println!("                              Got Cached Quotient");
 
         let instance_copy = instance.clone();
@@ -268,12 +268,12 @@ fn Test_ProveTime_Semi<E: Pairing>(max_log_n:usize,repeat_time:usize, para: bool
                 let mut semi_prover_update_time = Duration::default();
                 pool.install(|| {
                     let prove_start = Instant::now();
-                    proof_updated = Groth16::<E>::update_dynarc(&uk, &matrices, &instance_update, &witness_update, &cache).unwrap();
+                    proof_updated = Groth16::<E>::update_dynark(&uk, &matrices, &instance_update, &witness_update, &cache).unwrap();
                     semi_prover_update_time = prove_start.elapsed();
                 });
 
-                let result = Groth16::<E>::verify_dynarc(&pvk, &proof_updated, &instance_copy).unwrap();
-                // println!("Dynarc New proof verification result: >>>> {} <<<<", result);
+                let result = Groth16::<E>::verify_dynark(&pvk, &proof_updated, &instance_copy).unwrap();
+                // println!("Dynark New proof verification result: >>>> {} <<<<", result);
                 if !result{
                     panic!("Semi Prover Fail");
                 }
@@ -293,7 +293,7 @@ fn Test_ProveTime_Semi<E: Pairing>(max_log_n:usize,repeat_time:usize, para: bool
 
 /// Test Prover Time for Semi
 fn Test_ProveTime_Fully<E: Pairing>(max_log_n:usize, detail_log_n:usize, non_para_every_k:usize) {
-    let mut file= match File::create(format!("Append_EveryFully_Until_N=(2^{}).txt", max_log_n)){
+    let mut file= match File::create(format!("EveryFully_Until_N=(2^{}).txt", max_log_n)){
         Ok(f) => f,
         Err(e)=>{
             eprintln!("Failed to create file: {}", e);
@@ -301,7 +301,7 @@ fn Test_ProveTime_Fully<E: Pairing>(max_log_n:usize, detail_log_n:usize, non_par
         }
     };
     let mut rng = ark_std::rand::rngs::StdRng::seed_from_u64(test_rng().next_u64());
-    for log_n in (22..(max_log_n+1)).step_by(2){
+    for log_n in (10..(max_log_n+1)).step_by(2){
         let N: usize = 1<<log_n;
         let num_assignment = N;
         let num_instance = 1;
@@ -311,15 +311,15 @@ fn Test_ProveTime_Fully<E: Pairing>(max_log_n:usize, detail_log_n:usize, non_par
         let (matrices, ka, kb, ca, cb) =
             generate_matrices::<E>(num_constraint, num_instance, num_witness, &mut rng);
         let (mut instance, mut witness) = generate_instance_witness::<E>(num_instance, num_witness, &mut rng, &ka, &kb, &ca, &cb);
-        let (pk, vk, domain) = Groth16::<E>::groth16_setup_dynarc(matrices.clone(), &mut rng).unwrap();
+        let (pk, vk, domain) = Groth16::<E>::groth16_setup_dynark(matrices.clone(), &mut rng).unwrap();
         println!("                              Got Prover key and Verifier Key");
         let pvk = prepare_verifying_key(&vk);
         let uk = Groth16::<E>::generate_updating_keys(&matrices, &domain, &pk).unwrap();
         println!("                              Got Update Key");
         let (_, mut cache) =
-            Groth16::<E>::prove_dynarc(&pk, &matrices, &instance, &witness, &mut rng).unwrap();
+            Groth16::<E>::prove_dynark(&pk, &matrices, &instance, &witness, &mut rng).unwrap();
 
-        Groth16::<E>::process_dynarc(&uk, &matrices, &instance, &witness, &mut cache).unwrap();
+        Groth16::<E>::process_dynark(&uk, &matrices, &instance, &witness, &mut cache).unwrap();
         println!("                              Got Cached Quotient");
 
 
@@ -340,14 +340,15 @@ fn Test_ProveTime_Fully<E: Pairing>(max_log_n:usize, detail_log_n:usize, non_par
             let mut fully_prover_para_time: Duration = Duration::ZERO;
             let mut fully_prover_no_para_cnt:usize = 0;
             let mut fully_prover_para_cnt:usize = 0;
-            let repeat_time = ((1<<((log_n+6)>>1))/num_update)/((non_para_every_k<<1)+1)+1;
+            let repeat_time = ((1<<((log_n+6)>>1))/num_update)/non_para_every_k;
             (0..repeat_time).into_iter().for_each(|_|{
-                (0..((non_para_every_k<<1)+1)).into_iter().for_each(|it|{
+                let no_para_id = rng.gen_range(0..non_para_every_k);
+                (0..(non_para_every_k)).into_iter().for_each(|it|{
 
                     let (instance_update, witness_update) =
                         generate_update::<E>(num_constraint, num_update, num_instance, &ka, &kb, &ca, &cb, &mut instance, &mut witness, &mut rng);
                     let mut rem_stp = num_update;            
-                    let cond = it != non_para_every_k || log_n > 20;
+                    let cond = it != no_para_id;
                     let pool: rayon::ThreadPool = ThreadPoolBuilder::new().num_threads(if cond {192} else {1}).build().unwrap();
                     let mut proof_updated =  Proof::<E>::default();
                     let mut fully_prover_update_time: Duration = Duration::ZERO;
@@ -374,7 +375,7 @@ fn Test_ProveTime_Fully<E: Pairing>(max_log_n:usize, detail_log_n:usize, non_par
                         
                         fully_prover_update_time = fully_prover_start.elapsed();
                     });
-                    let result = Groth16::<E>::verify_dynarc(&pvk, &proof_updated, &instance).unwrap();
+                    let result = Groth16::<E>::verify_dynark(&pvk, &proof_updated, &instance).unwrap();
                     if !result {
                         panic!(" Fully prover Verifying Failed");
                     }
@@ -388,7 +389,9 @@ fn Test_ProveTime_Fully<E: Pairing>(max_log_n:usize, detail_log_n:usize, non_par
                 });
             });
             fully_prover_para_time /= fully_prover_para_cnt.try_into().unwrap();
-            // fully_prover_no_para_time /= fully_prover_no_para_cnt.try_into().unwrap();
+            if fully_prover_no_para_cnt > 0{
+                fully_prover_no_para_time /= fully_prover_no_para_cnt.try_into().unwrap();
+            }
             println!("Fully dynamic Prover Avg Parallel Time: {:?}\n", fully_prover_para_time);
             writeln!(file, "Fully dynamic Prover Avg Parallel Time: {:?}\n", fully_prover_para_time);
             println!("Fully dynamic Prover Avg Non-Parallel Time: {:?}\n", fully_prover_no_para_time);
