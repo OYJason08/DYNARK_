@@ -1,0 +1,36 @@
+Gloabal Cores = 192
+Dynarc Setup time: 2.022228794s
+Dynarc Prove time: 106.208093ms
+Dynarc Preprocess time: 1.302191979s
+Dynarc Old proof verify time: 4.425496ms
+Dynarc Old proof verification result: true
+Dynarc Update time: 23.100292ms
+Dynarc New proof verification result: >>>> true <<<<
+No para now, Cores = 192
+Dynarc Update time: 25.869444ms
+Dynarc New proof verify time: 4.664628ms
+Dynarc New proof verification result: >>>> true <<<<
+Gloabal Cores = 192
+Dynarc Setup time: 7.791709181s
+Dynarc Prove time: 612.873887ms
+Dynarc Preprocess time: 5.060150092s
+Dynarc Old proof verify time: 3.749715ms
+Dynarc Old proof verification result: true
+Dynarc Update time: 34.593011ms
+Dynarc New proof verification result: >>>> true <<<<
+No para now, Cores = 192
+Dynarc Update time: 22.684149ms
+Dynarc New proof verify time: 4.164292ms
+Dynarc New proof verification result: >>>> true <<<<
+Gloabal Cores = 192
+Dynarc Setup time: 115.729926835s
+Dynarc Prove time: 4.18506638s
+Dynarc Preprocess time: 72.831173595s
+Dynarc Old proof verify time: 4.747698ms
+Dynarc Old proof verification result: true
+Dynarc Update time: 28.152197ms
+Dynarc New proof verification result: >>>> true <<<<
+No para now, Cores = 192
+Dynarc Update time: 26.867804ms
+Dynarc New proof verify time: 4.624647ms
+Dynarc New proof verification result: >>>> true <<<<
