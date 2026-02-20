@@ -1,4 +1,4 @@
-# Dynark
+# Reference implementation of Dynark: Making Groth16 Dynamic
 
 This is an implementation of [Dynark: Making Groth16 Dynamic](https://eprint.iacr.org/2025/1897) under `Bls12_381` curve.
 
