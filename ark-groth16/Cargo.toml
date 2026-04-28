@@ -39,7 +39,7 @@ rand = "0.9.2"
 [dev-dependencies]
 csv = { version = "1" }
 ark-bls12-381 = { version = "0.5.0", default-features = false, features = ["curve"] }
-ark-bls12-377 = { version = "0.5.0", default-features = false, features = ["curve"] }
+ark-bls12-377 = { version = "0.6.0", default-features = false, features = ["curve"] }
 ark-bw6-761 = { version = "0.5.0", default-features = false }
 ark-mnt4-298 = { version = "0.5.0", default-features = false, features = ["r1cs", "curve"] }
 ark-mnt6-298 = { version = "0.5.0", default-features = false, features = ["r1cs"] }
